@@ -22,10 +22,7 @@ The platform is a custom-built tracked vehicle consisting of:
 
 ![Wiring Diagram](Documents/wiring_diagram.png)
 
----
-
 ## ⚙️ Firmware Implementation
-
 
 The ESP32 firmware is responsible for low-level control of the tracked vehicle, including motor actuation, data logging, and communication.
 
@@ -36,8 +33,6 @@ This part is described in more detail in the 📂 [Firmware Implementation](Firm
 * motor initialization and control
 
 The repository contains individual programs used during development, organized into separate modules for clarity and easier testing.
-
----
 
 ## 🎮 P and PI Controllers
 
