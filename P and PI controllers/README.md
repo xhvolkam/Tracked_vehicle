@@ -6,6 +6,8 @@ This section describes the implementation of feedback control strategies used fo
 
 The overall control structure follows a standard closed-loop control scheme.
 
+![Closed loop scheme](../Documents/acc_closed_loop.png)
+
 The distance to the obstacle is measured using the ultrasonic sensor and compared with the desired reference distance.
 The difference between these signals forms the control error, which is used by the controller to compute the control action.
 
