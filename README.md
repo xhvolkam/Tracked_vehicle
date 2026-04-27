@@ -37,7 +37,7 @@ The platform is a custom-built tracked vehicle consisting of:
 
 The ESP32 firmware is responsible for low-level control of the tracked vehicle, including motor actuation, data logging, and communication.
 
-This part is described in more detail in the 📂 [Firmware Implementation](Tracked_vehicle/Firmware%Implementation/) section of the repository, where the following aspects are covered:
+This part is described in more detail in the 📂 [Firmware Implementation](Tracked_vehicle/Firmware%20Implementation/) section of the repository, where the following aspects are covered:
 
 * sensor wiring and integration
 * data logging and communication
