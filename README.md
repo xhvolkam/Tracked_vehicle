@@ -1,6 +1,6 @@
 # Controller Design and Implementation for Tracked Vehicle
 
-This repository presents the implementation of advanced control strategies for a small tracked vehicle.
+This repository presents the implementation of advanced control strategies for a tracked vehicle.
 
 ## 📸 Vehicle
 
