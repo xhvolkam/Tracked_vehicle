@@ -2,7 +2,7 @@
 
 This repository presents the implementation of advanced control strategies for a tracked vehicle.
 
-## 📸 Vehicle
+## 📸 Tracked Vehicle
 
 ![RC Car](Documents/rc_vehicle.png)
 
