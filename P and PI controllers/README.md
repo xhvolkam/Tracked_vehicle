@@ -78,7 +78,7 @@ The integral term helps eliminate steady-state error and improves tracking accur
 
 ## Data Logging and Visualization
 
-Measured data and visualization scripts are available in the [Server Data]/(Server and Data Plotting/) folder.
+Measured data and visualization scripts are available in the [Server_Data](Server%and%Data%Plotting/) folder.
 
 This part of the project contains recorded experimental data together with the MATLAB script `Plotting.m`, which is used for generating plots and analyzing controller performance.
 
