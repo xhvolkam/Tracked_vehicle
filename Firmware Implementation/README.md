@@ -69,7 +69,7 @@ This stage is used to validate communication and verify that the motor control s
 
 ---
 
-## Sensor Integration (Distance Measurement)
+## Motor Logging Distance (Distance Measurement)
 
 In the final step, the ultrasonic sensor is integrated into the system, extending the firmware with distance measurement capability.
 
