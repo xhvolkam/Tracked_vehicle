@@ -6,7 +6,7 @@ The goal of the system is to maintain a desired distance from an obstacle using 
 
 ## 📸 Vehicle
 
-![RC Car](docs/rc_vehicle.png)
+![RC Car](Documents/rc_vehicle.png)
 
 ## 🚗 Hardware Overview
 
@@ -22,7 +22,7 @@ The platform is a custom-built tracked vehicle consisting of:
 
 ## 🔌 Final Hardware Wiring
 
-![Wiring Diagram](docs/wiring_diagram.png)
+![Wiring Diagram](Documents/wiring_diagram.png)
 
 ## ⚙️ Firmware Implementation
 
