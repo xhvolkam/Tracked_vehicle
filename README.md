@@ -49,3 +49,20 @@ This part is described in more detail in the 📂 [P and PI Controllers](P%20and
 * experimental data logging and visualization  
 
 The folder also includes recorded experimental data together with scripts for plotting and evaluating controller performance.
+
+## 📊 System Identification
+
+This part of the project focuses on identifying a dynamic model of the tracked vehicle based on measured experimental data.
+
+The identified model describes the relationship between the input (motor command) and the system output (distance and relative motion), and serves as a foundation for advanced control design.
+
+This step is essential for Model Predictive Control, as it provides a mathematical representation of the system dynamics used for prediction and optimization.
+
+This part is described in more detail in the 📂 [Identification](Identification/) section of the repository, where the following aspects are covered:
+
+* data collection from experiments  
+* signal preprocessing and filtering  
+* estimation of system dynamics  
+* validation of the identified model  
+
+The folder contains datasets, scripts, and results used for model identification and evaluation.
