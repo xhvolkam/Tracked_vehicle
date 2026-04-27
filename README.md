@@ -45,4 +45,20 @@ This part is described in more detail in the 📂 [Firmware Implementation](Firm
 
 The repository contains individual programs used during development, organized into separate modules for clarity and easier testing.
 
+---
 
+## 🎮 P and PI Controllers
+
+This part of the project focuses on the implementation of feedback control strategies used for distance regulation of the tracked vehicle.
+
+The controllers were developed as an intermediate step before introducing Model Predictive Control, allowing validation of the system behavior and tuning of the sensing and actuation pipeline.
+
+This part is described in more detail in the 📂 [P and PI Controllers](P%20and%20PI%20controllers/) section of the repository, where the following aspects are covered:
+
+* distance measurement and signal filtering  
+* implementation of the proportional (P) controller  
+* extension to the proportional-integral (PI) controller  
+* improvements using median filtering, double EMA filtering, and feedforward action  
+* experimental data logging and visualization  
+
+The folder also includes recorded experimental data together with scripts for plotting and evaluating controller performance.
