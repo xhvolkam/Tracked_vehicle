@@ -2,8 +2,6 @@
 
 This section describes the implementation of feedback control strategies used for distance regulation of the tracked vehicle.
 
----
-
 ## Control Scheme
 
 The overall control structure follows a standard closed-loop control scheme.
@@ -13,8 +11,6 @@ The difference between these signals forms the control error, which is used by t
 
 Based on this error, a PWM signal is generated and applied to the motors, adjusting the speed of the vehicle.
 This process is continuously repeated, forming a feedback loop that allows the system to regulate the distance in real time.
-
----
 
 ## Distance Measurement and Filtering
 
@@ -40,8 +36,6 @@ int pwm = ESC_MIN + (int)u;
 ```
 
 This controller reacts directly to the current error but may result in steady-state offset.
-
----
 
 ## Improved Filtering and Feedforward
 
@@ -79,7 +73,6 @@ int pwm = ESC_MIN + (int)u;
 
 The integral term helps eliminate steady-state error and improves tracking accuracy.
 
----
 
 ## Data Logging and Visualization
 
@@ -89,4 +82,3 @@ This part of the project contains recorded experimental data together with the M
 
 The communication between the vehicle and the computer is handled by a `server.py`, which enables real-time data logging and evaluation of the control performance.
 
----
