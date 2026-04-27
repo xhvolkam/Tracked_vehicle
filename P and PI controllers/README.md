@@ -1,9 +1,18 @@
 # P and PI Controller Implementation
 
-This section describes the implementation of basic control strategies used for distance regulation of the tracked vehicle.
+This section describes the implementation of feedback control strategies used for distance regulation of the tracked vehicle.
 
-The controllers operate directly on the measured distance from the ultrasonic sensor and generate a PWM signal for the motors.
-The development follows a progressive approach, where each step extends the functionality of the previous one.
+---
+
+## Control Scheme
+
+The overall control structure follows a standard closed-loop control scheme.
+
+The distance to the obstacle is measured using the ultrasonic sensor and compared with the desired reference distance.
+The difference between these signals forms the control error, which is used by the controller to compute the control action.
+
+Based on this error, a PWM signal is generated and applied to the motors, adjusting the speed of the vehicle.
+This process is continuously repeated, forming a feedback loop that allows the system to regulate the distance in real time.
 
 ---
 
@@ -19,8 +28,6 @@ A simple EMA filter is used for basic smoothing of the measured signal:
 ```cpp
 ema = alpha * distance + (1.0f - alpha) * ema;
 ```
-
----
 
 ## Proportional (P) Controller
 
@@ -58,8 +65,6 @@ u += Kff * (emaFast - emaSlow);
 
 This improves responsiveness to dynamic changes.
 
----
-
 ## Proportional-Integral (PI) Controller
 
 The PI controller extends the P controller by adding an integral component:
@@ -81,5 +86,7 @@ The integral term helps eliminate steady-state error and improves tracking accur
 Measured data and visualization scripts are available in the [Server and Data Plotting](Server%20and%20Data%20Plotting/) folder.
 
 This part of the project contains recorded experimental data together with the MATLAB script `Plotting.m`, which is used for generating plots and analyzing controller performance.
+
+The communication between the vehicle and the computer is handled by a `server.py`, which enables real-time data logging and evaluation of the control performance.
 
 ---
