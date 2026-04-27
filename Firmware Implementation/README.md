@@ -1,10 +1,8 @@
 # Firmware Implementation
 
 This folder contains the firmware developed for the tracked vehicle platform based on ESP32.
-
 The implementation is structured progressively, where each step extends the functionality of the previous one.
 
----
 
 ## Motor Calibration (Motor Control)
 
@@ -43,8 +41,6 @@ escLeft.writeMicroseconds(ESC_RUN);
 escRight.writeMicroseconds(ESC_RUN);
 ```
 
----
-
 ## Motor Logging (Communication)
 
 The next step extends the system with WiFi communication and data logging. At this stage, the firmware is able to transmit motor-related data to an external server for monitoring and analysis.
@@ -66,8 +62,6 @@ client.printf("TIME=%lu, LEFT_PWM=%d, RIGHT_PWM=%d, DIST=%.2f cm\n",
 ```
 
 This stage is used to validate communication and verify that the motor control signals are correctly generated and transmitted.
-
----
 
 ## Motor Logging Distance (Distance Measurement)
 
