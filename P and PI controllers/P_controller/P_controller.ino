@@ -1,6 +1,8 @@
   #include <WiFi.h>
   #include <ESP32Servo.h>
 
+  // Proportional controller firmware for local distance regulation on ESP32.
+
   // =============================
   // WIFI
   // =============================
@@ -40,8 +42,10 @@
     digitalWrite(TRIG_PIN, LOW);
 
     long duration = pulseIn(ECHO_PIN, HIGH, 30000);
+    // Timeout is treated as invalid data and handled by the filter/controller.
     if (duration == 0) return -1;
 
+    // Convert ultrasonic round-trip time to one-way distance in centimeters.
     return (duration * 0.0343 / 2.0);
   }
 
@@ -53,16 +57,19 @@
 
   int computePWM(float distance) {
     
+    // Invalid or missing distance measurements command a safe stop.
     if (distance <= 0) return ESC_MIN;
 
     float error = distance - targetDistance; // cim dalej tym viac musim akcelerovat
 
     //P control
+    // Positive error increases PWM when the vehicle is farther than the target.
     float u = Kp * error;
 
     int pwm = ESC_MIN + (int)u;
 
     if (distance < targetDistance) {
+      // Below the target distance, the vehicle should not continue forward.
       return ESC_MIN;
     }
 
@@ -82,9 +89,11 @@ float alpha = 0.15f;
 float processDistance(float d) {
 
     // Neplatné merania iba preskočíme
+    // Keeping the last filtered value avoids reacting to one bad echo sample.
     if (d < 0) return filteredDist;
 
     // EMA: správna forma (silnejšie filtruje)
+    // EMA smooths measurement noise while preserving a simple real-time update.
     filteredDist = alpha * d + (1.0f - alpha) * filteredDist;
 
     return filteredDist;
@@ -132,6 +141,7 @@ float processDistance(float d) {
     // --- update PWM ---
     if (now - lastPWMUpdate >= PWM_INTERVAL) {
 
+      // Measurement, filtering, and actuation are performed in one control step.
       float raw = readDistanceCM();
       float dist = processDistance(raw); 
       int pwm = computePWM(dist);
@@ -149,6 +159,7 @@ float processDistance(float d) {
   // --- send data to server ---
     if (now - lastSend >= SEND_INTERVAL) {
 
+      // Logging reuses the same distance processing path for comparable data.
       float raw = readDistanceCM();
       float dist = processDistance(raw);
 

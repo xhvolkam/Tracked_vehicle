@@ -3,6 +3,9 @@ clear;
 close all;
 yalmip('clear');
 
+% MATLAB hosts the robust controller. The ESP32 remains the hardware interface,
+% while this script evaluates Tube MPC and sends back PWM commands.
+
 %% Settings
 port = 8080;
 PWM_ZERO = 1150;
@@ -21,11 +24,15 @@ fclose(fid);
 fprintf('Logging to CSV: %s\n', csv_filename);
 
 %% Build Tube MPC before connection
+% Building the controller before accepting the ESP32 avoids a long delay during
+% the first closed-loop sample.
 fprintf('Building Tube MPC controller...\n');
 iMPC = buildTubeMPC_simple();
 fprintf('Tube MPC controller built.\n');
 
 % Dummy warm-up
+% A trial evaluation forces internal solver/controller initialization before
+% real data starts arriving from the vehicle.
 fprintf('Warm-up evaluate...\n');
 z_dummy = [200 - 50; 0];
 u_prev_dummy = 0;
@@ -38,7 +45,9 @@ catch ME
 end
 
 % States
+% mpcState contains previous distance and filtered velocity for state estimation.
 mpcState = [];
+% Previous input is stored in shifted PWM units for the Tube MPC delta-u limit.
 u_prev = 0;
 
 %% Server
@@ -69,6 +78,7 @@ while true
             data = parseEspPacketV1(line);
 
             if data.valid
+                % Packet counter verification helps identify dropped telemetry.
                 if isempty(lastK)
                     lastK = data.K;
                 else
@@ -80,6 +90,8 @@ while true
 
                 d = data.DIST_FILT;
 
+                % The Tube MPC function converts measured distance to deviation
+                % coordinates, evaluates the controller, and returns a PWM command.
                 [u_shift, u_cmd_pwm, v_raw, v_f, mpcState] = ...
                     computeMPC2_tube_simple(iMPC, d, u_prev, PWM_ZERO, mpcState);
 
@@ -108,6 +120,7 @@ while true
                 logStruct(idx).LOOP_TIME_MS = loop_time_ms;
 
                 fid = fopen(csv_filename, 'a');
+                % CSV logging mirrors the online MPC logger for easier comparison.
                 fprintf(fid, '%s,%d,%.0f,%.0f,%d,%.2f,%.2f,%.2f,%.2f,%.2f,%d,%.3f\n', ...
                     datestr(pc_now, 'yyyy-mm-dd HH:MM:SS.FFF'), ...
                     data.K, ...

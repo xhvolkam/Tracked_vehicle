@@ -3,6 +3,9 @@
 #include <Arduino.h>
 #include <math.h>
 
+// Identification firmware: applies open-loop PWM steps and logs distance so the
+// vehicle model can be fitted later in MATLAB.
+
 // =============================
 // WIFI
 // =============================
@@ -52,6 +55,7 @@ float readDistanceCM() {
 // TIMING
 // =============================
 static const float Ts = 0.05f;
+// Timer intervals are in milliseconds and match Ts = 50 ms.
 const unsigned long TICK_INTERVAL = 50;
 const unsigned long SEND_INTERVAL = 50;
 
@@ -75,6 +79,7 @@ const int PROFILE_LEN = sizeof(profile) / sizeof(profile[0]);
 
 int pwmFromProfile(uint32_t t_ms) {
   int pwm = profile[0].pwm;
+  // Use the last scheduled step whose start time has already passed.
   for (int i = 0; i < PROFILE_LEN; i++) {
     if (t_ms >= profile[i].t_ms) pwm = profile[i].pwm;
     else break;
@@ -92,6 +97,7 @@ bool medianInit = false;
 
 float medianFilter5(float x) {
   if (!medianInit) {
+    // Fill the median buffer with the first sample to prevent zero bias.
     for (int i = 0; i < MEDIAN_N; i++) medianBuf[i] = x;
     medianIdx = 0;
     medianInit = true;
@@ -103,6 +109,7 @@ float medianFilter5(float x) {
   float temp[MEDIAN_N];
   memcpy(temp, medianBuf, sizeof(temp));
 
+  // Median filtering removes isolated ultrasonic outliers without averaging them.
   for (int i = 0; i < MEDIAN_N - 1; i++) {
     for (int j = i + 1; j < MEDIAN_N; j++) {
       if (temp[j] < temp[i]) {
@@ -129,6 +136,7 @@ float dist_filt = 0.0f;
 float last_dist_raw = -1.0f;
 
 void updateDistanceFiltering(float rawDistance) {
+  // Ignore invalid echo measurements; the previous filtered value remains valid.
   if (rawDistance <= 0.0f) return;
 
   if (!emaInit) {
@@ -143,9 +151,11 @@ void updateDistanceFiltering(float rawDistance) {
   }
 
   //EMA FAST
+  // Fast EMA follows short-term motion and is useful for diagnostic comparison.
   emaFast = alphaFast * rawDistance + (1.0f - alphaFast) * emaFast;
 
   //MEDIAN5 + EMA SLOW
+  // Slow filtered distance is the signal saved for model identification.
   float med = medianFilter5(rawDistance);
   emaSlow = alphaSlow * med + (1.0f - alphaSlow) * emaSlow;
 
@@ -196,6 +206,7 @@ void loop() {
   uint32_t t_ms = (uint32_t)(now - t0);
 
   if (now - lastTick >= TICK_INTERVAL) {
+    // Open-loop excitation is independent of measured distance.
     int pwm = pwmFromProfile(t_ms);
 
     currentPWMLeft  = pwm;
@@ -213,6 +224,7 @@ void loop() {
   }
 
   if (now - lastSend >= SEND_INTERVAL) {
+    // CSV logger expects key=value fields separated by commas.
     client.printf(
       "TIME=%lu, TEXP=%lu, PWM=%d, DIST_RAW=%.2f, DIST_FILT=%.2f\n",
       now, (unsigned long)t_ms, currentPWMLeft,

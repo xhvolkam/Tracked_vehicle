@@ -3,9 +3,12 @@ clear
 close all
 
 %% Data
+% Load one logged online MPC experiment. The selected CSV determines which
+% controller behavior is inspected by the plotting helpers below.
 filename = "MPC_delta_u.csv";
 T = readtable(filename);
 
+% Use experiment-relative time from ESP32 so plots are independent of PC clock.
 t = (T.TEXP - T.TEXP(1)) / 1000;
 k = 0:length(t)-1;
 
@@ -35,6 +38,8 @@ u_min = 0;
 u_max = 80;
 
 %% Matrices
+% Convert logged vectors into the matrix layout expected by plotMPC_* helpers:
+% rows are signals/states, columns are sample indices.
 U    = u.';                 % 1 x N
 X    = [d.'; v_f.'];        % 2 x N
 Y    = d.';                 % 1 x N
@@ -56,6 +61,7 @@ Nsim_y = size(Y,2);
 %% Plotting
 
 % INPUT: u = PWM shift
+% These plots compare measured trajectories with the constraints used by MPC.
 plotMPC_inputs(U, u_min_vec, u_max_vec, Nsim_u, 1, 'default');
 
 % STATES: x1 = distance, x2 = filtered relative velocity

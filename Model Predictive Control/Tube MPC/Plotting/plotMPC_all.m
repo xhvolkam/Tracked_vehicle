@@ -1,4 +1,5 @@
 function plotMPC_all(U, X, Yref, u_min, u_max, x_min, x_max, d_min, d_max, palette)
+    % Combined Tube MPC diagnostic plot using the same signal layout as Online MPC.
     if nargin < 8, palette = 'default'; end
     my_colors = my_color_palette(palette);
     
@@ -15,6 +16,7 @@ function plotMPC_all(U, X, Yref, u_min, u_max, x_min, x_max, d_min, d_max, palet
     lw_main = 3.5; 
     
     figure('Color', 'w', 'Name', 'MPC: All Signals Summary');
+    % Shared x-axis exposes timing between PWM changes and state/output response.
     tl = tiledlayout(3, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
 
     % --- 1. INPUT (u) ---

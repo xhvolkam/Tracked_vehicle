@@ -1,6 +1,8 @@
 #include <WiFi.h>
 #include <ESP32Servo.h>
 
+// Open-loop motor logging extended with HC-SR04 distance measurement.
+
 // =============================
 // WIFI KONFIG
 // =============================
@@ -41,8 +43,10 @@ float readDistanceCM() {
   digitalWrite(TRIG_PIN, LOW);
 
   long duration = pulseIn(ECHO_PIN, HIGH, 30000);
+  // Convert round-trip echo time to one-way distance in centimeters.
   float distance = duration * 0.0343 / 2.0;
 
+  // Timeout is reported as an invalid distance.
   if (duration == 0) return -1;
   return distance;
 }
@@ -94,6 +98,7 @@ void loop() {
 
     float dist = readDistanceCM();
 
+    // Adds distance to the same key=value logging format used by motor tests.
     client.printf("TIME=%lu, LEFT_PWM=%d, RIGHT_PWM=%d, DIST=%.2f cm\n",
                   now, currentPWMLeft, currentPWMRight, dist);
 

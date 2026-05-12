@@ -1,67 +1,43 @@
 # System Identification
 
-This section describes the process of identifying a dynamic model of the tracked vehicle based on experimental data.
+This section identifies a simple discrete-time model of the tracked vehicle from measured input-output data. The resulting model is later used by the MPC implementations.
 
-The goal is to determine parameters of a discrete-time model that describes the relationship between the control input (PWM) and the system behavior (distance and relative motion).
+## What Was Implemented
 
----
+- ESP32 firmware that applies a predefined PWM step profile.
+- TCP logging of PWM and ultrasonic distance measurements.
+- MATLAB processing for velocity estimation, filtering, plotting, and parameter fitting.
 
-## Input Excitation – PWM Profile
+## Workflow
 
-To properly identify the system, the vehicle is using a predefined PWM input profile implemented in the [Identification.ino](Identification/Identification.ino) code.
-The PWM signal is not constant, but changes in steps over time in order to sufficiently excite the system dynamics:
+1. Upload `Identification/Identification.ino` to the ESP32.
+2. Run `Server and Data Plotting/server.py` on the PC.
+3. Drive the vehicle using the programmed PWM excitation profile.
+4. Save the received data as CSV.
+5. Run `Identification.m` to compute velocity and estimate model parameters.
 
-```cpp
-int pwm;
+## Key Model
 
-if (t < 2000)        pwm = 1150;
-else if (t < 4000)   pwm = 1200;
-else if (t < 6000)   pwm = 1300;
-else if (t < 8000)   pwm = 1400;
-else                 pwm = 1200;
-```
-
-This approach ensures that the system is stimulated over a range of operating conditions, which is necessary for reliable identification.
-
-## Data Processing and Identification
-
-The identification itself is performed in MATLAB using the script [Identification.m](Server%20and%20Data%20Plotting/Identification.m)
-
-The key step is the computation of relative velocity from the measured distance:
+The identified velocity model has the form:
 
 ```matlab
-v(k) = (d(k-1) - d(k)) / Ts;
-```
-
-Based on this, a discrete-time model is formulated:
-
-```matlab
-v(k+1) = alpha * v(k) + beta * u(k) + gamma;
+v(k+1) = alpha*v(k) + beta*u(k) + gamma
 ```
 
 where:
 
-* `alpha` represents system inertia
-* `beta` represents input gain
-* `gamma` captures steady-state bias
+- `v` is relative velocity computed from distance,
+- `u` is PWM shift relative to `PWM_ZERO`,
+- `alpha`, `beta`, and `gamma` are fitted from experiment data.
 
-The parameters `alpha`, `beta`, and `gamma` are estimated directly from measured data using least-squares methods.
+## Folder Overview
 
-## Visualization
+| Folder | Purpose |
+| --- | --- |
+| `Identification/` | ESP32 identification firmware. |
+| `Server and Data Plotting/` | TCP logger, recorded data, and MATLAB identification script. |
 
-The MATLAB script also provides visualization of measured signals and identified behavior.
+## Role In The Project
 
-This includes:
-
-* input PWM signal
-* measured distance
-* computed velocity
-
-These plots are used to validate the quality of the identified model.
-
-## Data Logging
-
-Experimental data are collected using a [Server](Server%20and%20Data%20Plotting/server.py).
-
-The server receives data from the ESP32, parses incoming messages, and stores them into CSV files for further processing and analysis.
+This section connects physical experiments to model-based control. The fitted model parameters are used in the Online MPC and Tube MPC controllers.
 

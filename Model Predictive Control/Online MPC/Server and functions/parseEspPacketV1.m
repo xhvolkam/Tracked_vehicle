@@ -1,4 +1,7 @@
 function data = parseEspPacketV1(line)
+% Parse one ESP32 telemetry line into numeric fields for the MPC server.
+% Expected format:
+% K=...,TIME=...,TEXP=...,PWM=...,DIST_RAW=...,DIST_FILT=...
 
     data = struct( ...
         'valid', false, ...
@@ -13,6 +16,8 @@ function data = parseEspPacketV1(line)
         parts = split(line, ',');
 
         for i = 1:numel(parts)
+            % Unknown or malformed tokens are ignored, but required fields are
+            % checked at the end before data.valid is set.
             token = strtrim(parts{i});
             kv = split(token, '=');
 
@@ -45,6 +50,7 @@ function data = parseEspPacketV1(line)
         end
 
         required = [data.K, data.TIME, data.TEXP, data.PWM, data.DIST_RAW, data.DIST_FILT];
+        % The control loop only uses packets containing all required quantities.
         data.valid = all(~isnan(required));
 
     catch

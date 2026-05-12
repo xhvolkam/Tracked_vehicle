@@ -2,6 +2,9 @@ import socket
 import csv
 from datetime import datetime
 
+# TCP logger for the identification experiment. The ESP32 sends line-oriented
+# key=value packets; this script turns complete packets into CSV rows.
+
 HOST = "0.0.0.0"
 PORT = 8080
 
@@ -27,6 +30,7 @@ def parse_kv_line(line: str) -> dict:
     parts = line.split(",")
     for part in parts:
         part = part.strip()
+        # Ignore malformed fragments so one bad token does not discard the line.
         if "=" not in part:
             continue
         key, value = part.split("=", 1)
@@ -34,6 +38,7 @@ def parse_kv_line(line: str) -> dict:
     return out
 
 def to_int(x):
+    """Convert optional numeric text to int while preserving missing CSV fields."""
     if x is None:
         return ""
     x = x.strip()
@@ -43,6 +48,7 @@ def to_int(x):
     return int(x)
 
 def to_float(x):
+    """Convert optional numeric text to float while preserving missing CSV fields."""
     if x is None:
         return ""
     x = x.strip()
@@ -85,6 +91,7 @@ with open(csv_filename, mode="w", newline="") as csvfile:
                 break
 
             # decode robustly
+            # TCP can split or combine ESP32 packets; buffer until newline.
             buffer += chunk.decode("utf-8", errors="ignore")
 
             while "\n" in buffer:
@@ -100,6 +107,8 @@ with open(csv_filename, mode="w", newline="") as csvfile:
                 try:
                     kv = parse_kv_line(line)
 
+                    # PC timestamp records arrival time; ESP32 TIME/TEXP preserve
+                    # embedded timing and experiment-relative timing.
                     row = {"Timestamp": ts}
                     row["TIME"] = to_int(kv.get("TIME"))
                     row["TEXP"] = to_int(kv.get("TEXP"))
@@ -116,6 +125,8 @@ with open(csv_filename, mode="w", newline="") as csvfile:
                 now_dt = datetime.now()
 
                 if (now_dt - last_flush_time).total_seconds() >= 1.0:
+                    # Periodic flushing limits data loss without forcing a disk
+                    # write on every 50 ms sample.
                     csvfile.flush()
                     last_flush_time = now_dt
 

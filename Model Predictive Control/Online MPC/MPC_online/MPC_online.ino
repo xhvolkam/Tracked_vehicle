@@ -3,6 +3,9 @@
 #include <Arduino.h>
 #include <math.h>
 
+// This firmware is the vehicle-side endpoint for MATLAB online MPC: it measures
+// distance, filters it, sends telemetry packets, and applies returned PWM values.
+
 // =============================
 // WIFI
 // =============================
@@ -23,6 +26,8 @@ const int ESC_RIGHT_PIN = 18;
 
 const int ESC_MIN = 1090;
 const int ESC_MAX = 1700;
+// PWM_ZERO is the low-speed baseline used by MATLAB when converting between
+// shifted control input and absolute ESC pulse width.
 const int PWM_ZERO = 1150;
 
 int currentPWMLeft  = PWM_ZERO;
@@ -43,8 +48,10 @@ float readDistanceCM() {
   digitalWrite(TRIG_PIN, LOW);
 
   long duration = pulseIn(ECHO_PIN, HIGH, 25000);
+  // Timeout indicates that the ultrasonic echo was not received in the window.
   if (duration == 0) return -1.0f;
 
+  // HC-SR04 measures round-trip acoustic time; 0.0343 cm/us is speed of sound.
   return (duration * 0.0343f / 2.0f);
 }
 
@@ -64,6 +71,7 @@ bool medianInit = false;
 
 float medianFilter5(float x) {
   if (!medianInit) {
+    // Seed the window with the first valid sample to avoid startup zeros.
     for (int i = 0; i < MEDIAN_N; i++) medianBuf[i] = x;
     medianIdx = 0;
     medianInit = true;
@@ -75,6 +83,7 @@ float medianFilter5(float x) {
   float temp[MEDIAN_N];
   memcpy(temp, medianBuf, sizeof(temp));
 
+  // Sort a copy of the small window and return the center value as the median.
   for (int i = 0; i < MEDIAN_N - 1; i++) {
     for (int j = i + 1; j < MEDIAN_N; j++) {
       if (temp[j] < temp[i]) {
@@ -101,6 +110,8 @@ float dist_filt = 0.0f;
 float last_dist_raw = -1.0f;
 
 void updateDistanceFiltering(float rawDistance) {
+  // Invalid ultrasonic readings are ignored so a single timeout does not corrupt
+  // the state sent to MATLAB.
   if (rawDistance <= 0.0f) return;
 
   if (!emaInit) {
@@ -116,6 +127,7 @@ void updateDistanceFiltering(float rawDistance) {
 
   emaFast = alphaFast * rawDistance + (1.0f - alphaFast) * emaFast;
 
+  // Median rejects spikes; slow EMA produces the distance used by the controller.
   float med = medianFilter5(rawDistance);
   emaSlow = alphaSlow * med + (1.0f - alphaSlow) * emaSlow;
 
@@ -178,6 +190,7 @@ void setup() {
 // =============================
 void loop() {
   unsigned long now = millis();
+  // t_ms is experiment-relative time sent to MATLAB for logs and plots.
   unsigned long t_ms = now - t0;
 
   maintainConnection();
@@ -186,6 +199,8 @@ void loop() {
   if (now - lastTick >= TICK_INTERVAL) {
     lastTick = now;
 
+    // Measurement and filtering are decoupled from command reception, so MATLAB
+    // always receives the most recent distance estimate.
     float dist_raw = readDistanceCM();
     last_dist_raw = dist_raw;
     updateDistanceFiltering(dist_raw);
@@ -193,6 +208,7 @@ void loop() {
 
   if (now - lastSend >= SEND_INTERVAL) {
     lastSend = now;
+    // Telemetry rate matches the MPC sample time used in MATLAB.
     sendPacket(now, t_ms);
   }
 }
@@ -217,6 +233,7 @@ void connectToServer() {
     delay(500);
   }
 
+  // Short read timeout keeps command parsing responsive in the control loop.
   client.setTimeout(5);
   rxLine = "";
 }
@@ -253,6 +270,7 @@ void readServerMessages() {
       rxLine.trim();
 
       if (rxLine.length() > 0) {
+        // MATLAB commands are line based; only complete lines are parsed.
         parseMatlabCommand(rxLine);
       }
 
@@ -274,6 +292,7 @@ void parseMatlabCommand(const String& line) {
   valueStr.replace("u=", "");
   valueStr.trim();
 
+  // MATLAB sends an absolute PWM command, not only the MPC input increment.
   commandedPWM = valueStr.toInt();
   applyReceivedCommand();
 
@@ -287,6 +306,7 @@ void parseMatlabCommand(const String& line) {
 void sendPacket(unsigned long now, unsigned long t_ms) {
   packetCounter++;
 
+  // Packet keys must match parseEspPacketV1.m on the MATLAB side.
   client.printf(
     "K=%lu,TIME=%lu,TEXP=%lu,PWM=%d,DIST_RAW=%.2f,DIST_FILT=%.2f\n",
     packetCounter,
@@ -302,6 +322,7 @@ void sendPacket(unsigned long now, unsigned long t_ms) {
 // APLIKACIA PRIJATEHO PRIKAZU
 // =============================
 void applyReceivedCommand() {
+  // Straight-line experiments command both tracks equally.
   currentPWMLeft  = commandedPWM;
   currentPWMRight = commandedPWM;
 

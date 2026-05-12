@@ -1,6 +1,9 @@
 #include <WiFi.h>
 #include <ESP32Servo.h>
 
+// PI controller firmware: performs local distance feedback on the ESP32 and
+// logs the closed-loop response to a PC over TCP.
+
 // =============================
 // WIFI
 // =============================
@@ -39,8 +42,10 @@ float readDistanceCM() {
   digitalWrite(TRIG_PIN, LOW);
 
   long duration = pulseIn(ECHO_PIN, HIGH, 30000);
+  // A timeout means the ultrasonic measurement is invalid for this sample.
   if (duration == 0) return -1;
 
+  // Convert round-trip echo time to one-way distance in centimeters.
   return (duration * 0.0343f / 2.0f);
 }
 
@@ -63,12 +68,14 @@ float medianBuf[MEDIAN_N] = {0};
 int medianIdx = 0;
 
 float medianFilter(float x) {
+  // Ring-buffer update stores the latest distance samples for outlier rejection.
   medianBuf[medianIdx++] = x;
   if (medianIdx >= MEDIAN_N) medianIdx = 0;
 
   float temp[MEDIAN_N];
   memcpy(temp, medianBuf, sizeof(temp));
 
+  // Sorting the copy preserves acquisition order in medianBuf.
   for (int i = 0; i < MEDIAN_N - 1; i++) {
     for (int j = i + 1; j < MEDIAN_N; j++) {
       if (temp[j] < temp[i]) {
@@ -97,12 +104,15 @@ float alphaSlow = 0.05f;
 // =============================
 int computePWM(float rawDistance) {
 
+  // Do not move the vehicle based on invalid ultrasonic data.
   if (rawDistance <= 0) return ESC_MIN;
 
   // --- EMA FAST ---
+  // Fast EMA captures recent changes and is used as a simple motion trend term.
   emaFast = alphaFast * rawDistance + (1.0f - alphaFast) * emaFast;
 
   // --- MEDIAN + EMA SLOW ---
+  // Slow branch is the main feedback signal for the PI controller.
   float med = medianFilter(rawDistance);
   emaSlow = alphaSlow * med + (1.0f - alphaSlow) * emaSlow;
 
@@ -112,19 +122,23 @@ int computePWM(float rawDistance) {
   float error = dist - targetDistance;
 
   // --- INTEGRÁL ---
+  // Integrating error reduces steady-state offset; limiting prevents windup.
   integralError += error * Ts;
   integralError = constrain(integralError, -150.0f, 150.0f);
 
   // --- PI výpočet ---
+  // u is a PWM offset above ESC_MIN, not an absolute speed command yet.
   float u = Kp * error + Ki * integralError;
 
   // --- EMA FAST ako feedforward ---
+  // The fast-slow difference increases response when distance changes rapidly.
   float Kff = 0.2f;                // doladiteľné
   u += Kff * (emaFast - emaSlow);
 
   int pwm = ESC_MIN + (int)u;
 
   // --- SAFETY ---
+  // Close obstacle condition resets the integral and commands stop.
   if (dist < 35.0f) {
     integralError = 0.0f;
     return ESC_MIN;
@@ -173,6 +187,7 @@ void loop() {
 
   // --- REGULÁCIA ---
   if (now - lastPWMUpdate >= PWM_INTERVAL) {
+    // Controller runs at the same sample time assumed by Ts.
     int pwm = computePWM(raw);
 
     currentPWMLeft  = pwm;

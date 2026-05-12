@@ -1,5 +1,8 @@
 clc; clear; close all;
 
+% This script converts the identification experiment log into a discrete-time
+% velocity model that is later reused by the MPC controllers.
+
 %% Load data
 filename = "Identification_profiles.csv";
 T = readtable(filename);
@@ -13,16 +16,20 @@ dist_filt = T.DIST_FILT;
 Ts = 0.05;
 PWM_ZERO = 1150;
 
+% MPC and identification use input as a PWM shift relative to the zero command.
 u = pwm(:) - PWM_ZERO;]
 d = dist_filt(:);
 
 % Remove NaNs
+% Invalid logged samples must be removed before numerical differentiation.
 idx = ~(isnan(d) | isnan(u) | isnan(t));
 d = d(idx);
 u = u(idx);
 t = t(idx);
 
 idx2 = t >= 4;
+% Initial startup data is skipped so ESC arming and filter transients do not
+% bias the estimated model.
 d = d(idx2);
 u = u(idx2);
 t = t(idx2);
@@ -30,10 +37,13 @@ t = t(idx2);
 t = t - t(1);
 
 % Estimate velocity
+% Positive velocity means the measured distance to the obstacle is decreasing.
 v = (d(1:end-1) - d(2:end)) / Ts;   % [cm/s]
 t_v = t(1:end-1);
 
 % EMA filter on velocity
+% Differentiation amplifies ultrasonic noise, so velocity is smoothed before
+% least-squares fitting.
 aV = 0.2;
 v_f = zeros(size(v));
 v_f(1) = v(1);
@@ -149,6 +159,8 @@ xlim([t(1) t(end)]);
 
 u_v = u(1:end-1);
 
+% Linear least squares: Phi contains current velocity, current input, and a
+% constant bias term; Y contains next-step velocity.
 Y   = v_f(2:end);
 Phi = [v_f(1:end-1), u_v(1:end-1), ones(length(Y),1)];
 

@@ -1,86 +1,37 @@
-# P and PI Controller Implementation
+# P And PI Controllers
 
-This section describes the implementation of feedback control strategies used for distance regulation of the tracked vehicle.
+This section contains classical feedback controllers for distance regulation of the tracked vehicle. These controllers were implemented before MPC to validate sensing, filtering, actuation, and logging.
 
-## Control Scheme
+## What Was Implemented
 
-The overall control structure follows a standard closed-loop control scheme.
+- Proportional distance controller.
+- Proportional-integral distance controller.
+- Ultrasonic distance filtering using EMA and median filtering.
+- Feedforward support based on fast/slow filtered distance difference.
+- TCP logging of PWM and distance data.
+- MATLAB plotting of recorded experiments.
 
-![Closed loop scheme](../Documents/acc_closed_loop.png)
+## Control Workflow
 
-The distance to the obstacle is measured using the ultrasonic sensor and compared with the desired reference distance.
-The difference between these signals forms the control error, which is used by the controller to compute the control action.
-
-Based on this error, a PWM signal is generated and applied to the motors, adjusting the speed of the vehicle.
-This process is continuously repeated, forming a feedback loop that allows the system to regulate the distance in real time.
-
-## Distance Measurement and Filtering
-
-The raw distance signal obtained from the ultrasonic sensor is noisy and unsuitable for direct control.
-Therefore, filtering is introduced before applying any control law.
-
-### Exponential Moving Average (EMA)
-
-A simple EMA filter is used for basic smoothing of the measured signal:
-
-```cpp
-ema = alpha * distance + (1.0f - alpha) * ema;
+```text
+HC-SR04 distance -> filtering -> distance error -> P/PI control -> PWM command -> ESCs/motors
 ```
 
-## Proportional (P) Controller
-
-The P controller introduces the first feedback control law based on the distance error:
+The target distance used in the controller experiments is typically:
 
 ```cpp
-float error = distance - targetDistance;
-float u = Kp * error;
-int pwm = ESC_MIN + (int)u;
+float targetDistance = 50.0f;
 ```
 
-This controller reacts directly to the current error but may result in steady-state offset.
+## Folder Overview
 
-## Improved Filtering and Feedforward
+| Folder | Purpose |
+| --- | --- |
+| `P_controller/` | ESP32 implementation of proportional distance control. |
+| `PI_controller/` | ESP32 implementation of PI distance control with filtering and safety logic. |
+| `Server and Data Plotting/` | Python TCP logger, recorded datasets, and MATLAB plotting script. |
 
-To improve signal quality, a combination of median filtering and double EMA filtering is used.
+## Role In The Project
 
-* Median filter removes outliers
-* Slow EMA smooths the signal
-* Fast EMA captures rapid changes
-
-```cpp
-float med = medianFilter(distance);
-emaSlow = alphaSlow * med + (1.0f - alphaSlow) * emaSlow;
-emaFast = alphaFast * distance + (1.0f - alphaFast) * emaFast;
-```
-
-A feedforward term is added based on the difference between fast and slow filtered signals:
-
-```cpp
-u += Kff * (emaFast - emaSlow);
-```
-
-This improves responsiveness to dynamic changes.
-
-## Proportional-Integral (PI) Controller
-
-The PI controller extends the P controller by adding an integral component:
-
-```cpp
-float error = dist - targetDistance;
-integralError += error * Ts;
-
-float u = Kp * error + Ki * integralError;
-int pwm = ESC_MIN + (int)u;
-```
-
-The integral term helps eliminate steady-state error and improves tracking accuracy.
-
-
-## Data Logging and Visualization
-
-Measured data and visualization scripts are available in the [Server and Data Plotting](Server%20and%20Data%20Plotting/) folder.
-
-This part of the project contains recorded experimental data together with the MATLAB script `Plotting.m`, which is used for generating plots and analyzing controller performance.
-
-The communication between the vehicle and the computer is handled by a `server.py`, which enables real-time data logging and evaluation of the control performance.
+This section is the bridge between open-loop identification and model-based control. It proves that the vehicle can regulate distance locally on the ESP32 before MATLAB-based MPC is introduced.
 

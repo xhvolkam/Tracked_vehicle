@@ -1,7 +1,10 @@
 %% IMPORT CSV DATA
+% Load one controller experiment log produced by server.py.
 filename = '17_PI_ident3_20251217_155314.csv';
 data = readmatrix(filename);
 
+% Columns follow the CSV format: PC timestamp, ESP32 time, left PWM, right PWM,
+% and filtered/measured distance.
 time_ms   = data(:,2);
 pwm_left  = data(:,3)-1090;
 pwm_right = data(:,4)-1090;
@@ -9,6 +12,7 @@ distance  = data(:,5);
 
 time_s = time_ms / 1000;
 
+% Reference used by the distance controller during the experiment.
 distance_ref = 50 * ones(size(distance));
 
 %% Plotting
@@ -28,6 +32,7 @@ title('Measured Distance');
 
 
 %% Subplotting
+% Combined view aligns input and output in time for controller evaluation.
 figure;
 
 tl = tiledlayout(2,1,'TileSpacing','compact','Padding','compact');

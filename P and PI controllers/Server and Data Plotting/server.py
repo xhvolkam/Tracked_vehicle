@@ -3,6 +3,9 @@ import csv
 import os
 from datetime import datetime
 
+# TCP logger for P/PI controller experiments. Firmware sends one text packet per
+# sample and the server stores values for later MATLAB plotting.
+
 HOST = '0.0.0.0'
 PORT = 8080
 
@@ -34,6 +37,8 @@ with open(csv_filename, mode='w', newline='') as csvfile:
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
 
                 try:
+                    # Expected format:
+                    # TIME=<ms>, PWM_LEFT=<us>, PWM_RIGHT=<us>, DIST=<cm>
                     parts = line.split(',')
                     time_val = pwm_left = pwm_right = dist_val = None
 
@@ -50,6 +55,8 @@ with open(csv_filename, mode='w', newline='') as csvfile:
                             dist_val = float(value)
 
                     if None not in (time_val, pwm_left, pwm_right, dist_val):
+                        # Write only complete rows so plotting scripts do not
+                        # need to handle partially parsed packets.
                         csv_writer.writerow([timestamp, time_val, pwm_left, pwm_right, dist_val])
                         csvfile.flush()  # okamžité zapisovanie
                     else:

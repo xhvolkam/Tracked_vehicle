@@ -3,6 +3,9 @@ clear;
 close all;
 yalmip('clear');
 
+% MATLAB runs the high-level controller: ESP32 sends telemetry, this server
+% solves one MPC step, and the reply is the next absolute PWM command.
+
 %% Settings
 port = 8080;
 PWM_ZERO = 1150;
@@ -11,6 +14,8 @@ fprintf('\n MATLAB TCP SERVER START (ONLINE MPC) \n');
 fprintf('Listening on port %d...\n', port);
 
 %% .csv
+% Each run creates a separate log so timing, measurements, and commands can be
+% analyzed after the experiment without overwriting previous data.
 timestamp_str = datestr(now, 'yyyymmdd_HHMMSS');
 csv_filename = sprintf('esp32_mpc_log_%s.csv', timestamp_str);
 
@@ -21,7 +26,9 @@ fclose(fid);
 fprintf('Logging to CSV: %s\n', csv_filename);
 
 % States
+% mpcState stores previous distance and filtered velocity between packets.
 mpcState = [];
+% u_prev is stored as a shift relative to PWM_ZERO for the delta-u constraint.
 u_prev = 0;
 
 %% Server
@@ -54,6 +61,7 @@ while true
 
             if data.valid
                 % kontrola packet counteru
+                % Missing packet numbers usually indicate WiFi/TCP delays or ESP32 resets.
                 if isempty(lastK)
                     lastK = data.K;
                 else
@@ -65,8 +73,12 @@ while true
 
                 d = data.DIST_FILT;
 
+                % The controller uses filtered distance, reconstructs velocity,
+                % and returns both diagnostic states and the PWM command.
                 [u_shift, u_cmd_pwm, v_raw, v_f, mpcState] = computeMPC2(d, u_prev, PWM_ZERO, mpcState);
 
+                % The ESP32 reports the PWM that was active in this packet; it is
+                % converted back to shifted units for the next optimization.
                 u_prev = data.PWM - PWM_ZERO;
 
                 sendReplyV1(server, u_cmd_pwm);
@@ -92,6 +104,8 @@ while true
                 logStruct(idx).LOOP_TIME_MS = loop_time_ms;
 
                 fid = fopen(csv_filename, 'a');
+                % Append immediately so partial experiment data survives if the
+                % server is stopped before MATLAB variables are saved.
                 fprintf(fid, '%s,%d,%.0f,%.0f,%d,%.2f,%.2f,%.2f,%.2f,%.2f,%d,%.3f\n', ...
                     datestr(pc_now, 'yyyy-mm-dd HH:MM:SS.FFF'), ...
                     data.K, ...

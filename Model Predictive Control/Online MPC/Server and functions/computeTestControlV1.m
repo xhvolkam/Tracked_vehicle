@@ -1,4 +1,5 @@
 function u_cmd = computeTestControlV1(data)
+    % Simple communication test controller used before running MPC optimization.
 
     PWM_ZERO = 1150;
     PWM_MIN  = 1090;
@@ -7,6 +8,7 @@ function u_cmd = computeTestControlV1(data)
     d = data.DIST_FILT;
 
     % jednoduchá testovacia logika
+    % Larger measured distance commands more forward PWM; near the target it stops.
     if d > 120
         u_cmd = PWM_ZERO + 60;
     elseif d > 80

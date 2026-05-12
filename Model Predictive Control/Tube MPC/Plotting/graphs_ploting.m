@@ -3,9 +3,11 @@ clear
 close all
 
 %% Data
+% Load the Tube MPC experiment log exported by the MATLAB TCP server.
 filename = "Tube_MPC.csv";
 T = readtable(filename);
 
+% Use experiment-relative time from ESP32 for consistent sample alignment.
 t = (T.TEXP - T.TEXP(1)) / 1000;   % [s]
 k = 0:length(t)-1;                 % sample index
 
@@ -35,6 +37,7 @@ u_min = -10;
 u_max = 80;
 
 %% Matrices
+% Plotting functions expect signal matrices with samples along columns.
 U    = u.';                 % 1 x N
 X    = [d.'; v_f.'];        % 2 x N
 Y    = d.';                 % 1 x N
@@ -56,6 +59,8 @@ Nsim_y = size(Y,2);
 %% Plotting
 
 % INPUT: u = PWM shift
+% The same plotting helpers are reused so Online MPC and Tube MPC results are
+% visually comparable.
 plotMPC_inputs(U, u_min_vec, u_max_vec, Nsim_u, 1, 'default');
 
 % STATES: x1 = distance, x2 = filtered relative velocity
